@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>E-Commerce Dashboard</title>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --muted:#9aa7bf;
+      --accent:#3b82f6;
+      --glass: rgba(255,255,255,0.03);
+      --success: #16a34a;
+      --danger: #ef4444;
+      --radius: 12px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color-scheme: dark;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071022,#081426 40%); color:#e6eef8}
+    a{color:inherit;text-decoration:none}
+    .app{
+      display:grid;
+      grid-template-columns:260px 1fr;
+      gap:20px;
+      padding:20px;
+      min-height:100vh;
+      align-items:start;
+    }
+
+    /* Sidebar */
+    .sidebar{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), var(--glass));
+      padding:18px;
+      border-radius:var(--radius);
+      box-shadow:0 8px 30px rgba(2,6,23,0.6);
+      position:sticky;
+      top:20px;
+      height:calc(100vh - 40px);
+      overflow:auto;
+    }
+    .brand{display:flex;gap:10px;align-items:center;margin-bottom:16px}
+    .logo{
+      width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#7c3aed);
+      display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 6px 18px rgba(59,130,246,0.12)
+    }
+    .nav{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+    .nav a{padding:10px;border-radius:10px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;font-size:14px}
+    .nav a:hover{background:rgba(255,255,255,0.02);color:#fff}
+
+    /* Main */
+    .main{
+      min-height:100vh;
+    }
+    .topbar{
+      display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px;
+    }
+    .search{
+      flex:1;display:flex;gap:10px;align-items:center;
+    }
+    .search input{
+      width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);
+      background:transparent;color:inherit;outline:none;
+    }
+    .profile{display:flex;gap:12px;align-items:center}
+    .avatar{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#34d399,#60a5fa);display:flex;align-items:center;justify-content:center;font-weight:700}
+
+    /* Grid of cards */
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:16px;
+      margin-bottom:18px;
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.45);
+    }
+    .kpi-title{color:var(--muted);font-size:13px;margin-bottom:8px}
+    .kpi-value{font-size:20px;font-weight:700}
+
+    /* Charts area */
+    .area{
+      display:grid;
+      grid-template-columns:2fr 1fr;
+      gap:16px;
+      margin-bottom:18px;
+    }
+    .chart-wrap{padding:16px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), var(--glass))}
+    .chart-legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;color:var(--muted);font-size:13px}
+
+    /* Table / list */
+    .panel{display:grid;grid-template-columns:1fr 420px;gap:16px}
+    .table-wrap{overflow:auto;padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), var(--glass))}
+    table{width:100%;border-collapse:collapse;color:#dbe9ff}
+    th,td{padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.03);font-size:13px}
+    th{color:var(--muted);font-weight:600}
+    tr:hover td{background:rgba(255,255,255,0.01)}
+
+    .product-list{padding:12px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), var(--glass));max-height:520px;overflow:auto}
+    .prod{display:flex;gap:12px;align-items:center;padding:10px;border-radius:10px;margin-bottom:8px}
+    .thumb{width:56px;height:56px;border-radius:8px;background:linear-gradient(135deg,#94a3b8,#0ea5a2);display:flex;align-items:center;justify-content:center;font-weight:700;color:#082032}
+
+    /* small utilities */
+    .muted{color:var(--muted);font-size:13px}
+    .small{font-size:12px}
+    .btn{
+      display:inline-flex;gap:8px;align-items:center;padding:8px 12px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.04);cursor:pointer;color:#e6eef8
+    }
+
+    /* responsive */
+    @media (max-width:980px){
+      .app{grid-template-columns:1fr; padding:12px}
+      .sidebar{position:static;height:auto;order:2}
+      .main{order:1}
+      .grid{grid-template-columns:repeat(2,1fr)}
+      .area{grid-template-columns:1fr}
+      .panel{grid-template-columns:1fr}
+    }
+    @media (max-width:600px){
+      .grid{grid-template-columns:1fr}
+    }
+
+    /* pagination */
+    .pagination{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding-top:8px}
+    .page-btn{padding:6px 10px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" aria-label="Sidebar">
+      <div class="brand">
+        <div class="logo">EC</div>
+        <div>
+          <div style="font-weight:700;font-size:15px">ShopDash</div>
+          <div class="muted small">E-Commerce Admin</div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <a href="#" class="active">Dashboard</a>
+        <a href="#">Orders <span class="muted small">• 24 new</span></a>
+        <a href="#">Products</a>
+        <a href="#">Customers</a>
+        <a href="#">Analytics</a>
+        <a href="#">Settings</a>
+      </div>
+
+      <hr style="margin:16px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+
+      <div>
+        <div class="muted small">Performance</div>
+        <div style="margin-top:10px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px"><div class="muted small">Conversion</div><div class="small">3.8%</div></div>
+          <div style="height:8px;background:rgba(255,255,255,0.04);border-radius:10px;overflow:hidden">
+            <div style="width:38%;height:100%;background:linear-gradient(90deg,var(--accent),#7c3aed)"></div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="topbar">
+        <div class="search">
+          <input id="globalSearch" placeholder="Search orders, customers, products..." />
+          <button class="btn" onclick="exportCSV()">Export CSV</button>
+        </div>
+        <div class="profile">
+          <div style="text-align:right;margin-right:8px">
+            <div style="font-weight:700">Admin</div>
+            <div class="muted small">Last sign in: 2 hours ago</div>
+          </div>
+          <div class="avatar">A</div>
+        </div>
+      </div>
+
+      <!-- KPI CARDS -->
+      <div class="grid" id="kpiGrid">
+        <div class="card">
+          <div class="kpi-title">Revenue (30d)</div>
+          <div class="kpi-value" id="kpiRevenue">$0</div>
+          <div class="muted small">Compared to last period: <span id="kpiRevDelta">+0%</span></div>
+        </div>
+        <div class="card">
+          <div class="kpi-title">Orders</div>
+          <div class="kpi-value" id="kpiOrders">0</div>
+          <div class="muted small">Avg / day: <span id="kpiOrdersAvg">0</span></div>
+        </div>
+        <div class="card">
+          <div class="kpi-title">Conversion Rate</div>
+          <div class="kpi-value" id="kpiConv">0%</div>
+          <div class="muted small">Sessions: <span id="kpiSessions">0</span></div>
+        </div>
+        <div class="card">
+          <div class="kpi-title">Avg Order Value</div>
+          <div class="kpi-value" id="kpiAOV">$0</div>
+          <div class="muted small">Repeat customers: <span id="kpiRepeat">0%</span></div>
+        </div>
+      </div>
+
+      <!-- CHARTS -->
+      <div class="area">
+        <div class="chart-wrap card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:700">Sales (last 30 days)</div>
+            <div class="muted small">Currency: USD</div>
+          </div>
+          <canvas id="salesChart" style="height:320px;margin-top:12px"></canvas>
+          <div class="chart-legend" id="salesLegend"></div>
+        </div>
+
+        <div class="chart-wrap card">
+          <div style="font-weight:700">Top categories</div>
+          <canvas id="catChart" style="height:240px;margin-top:12px"></canvas>
+          <div class="muted small" style="margin-top:8px">Shows proportion of revenue by category</div>
+        </div>
+      </div>
+
+      <!-- Table + Product list -->
+      <div class="panel">
+        <div>
+          <div class="table-wrap card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div style="font-weight:700">Recent Orders</div>
+              <div class="muted small">Showing <span id="ordersCount">0</span> orders</div>
+            </div>
+
+            <div style="overflow:auto">
+              <table id="ordersTable" aria-label="Orders table">
+                <thead>
+                  <tr>
+                    <th onclick="sortTable('id')">Order #</th>
+                    <th onclick="sortTable('customer')">Customer</th>
+                    <th onclick="sortTable('date')">Date</th>
+                    <th onclick="sortTable('amount')">Amount</th>
+                    <th onclick="sortTable('status')">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="ordersTbody">
+                  <!-- filled by JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="pagination" id="paginationArea"></div>
+
+          </div>
+
+          <div style="height:16px"></div>
+
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:700">Filters</div>
+              <div class="muted small">Quick filters</div>
+            </div>
+
+            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+              <select id="filterStatus" class="btn" onchange="applyFilters()">
+                <option value="">All statuses</option>
+                <option>Processing</option>
+                <option>Shipped</option>
+                <option>Delivered</option>
+                <option>Cancelled</option>
+              </select>
+
+              <select id="filterCategory" class="btn" onchange="applyFilters()">
+                <option value="">All categories</option>
+              </select>
+
+              <button class="btn" onclick="resetFilters()">Reset</button>
+            </div>
+          </div>
+
+        </div>
+
+        <aside class="product-list">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-weight:700">Top Products</div>
+            <div class="muted small">By revenue</div>
+          </div>
+
+          <div id="productList">
+            <!-- JS fills -->
+          </div>
+
+          <div style="height:10px"></div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="muted small">Total products: <span id="prodCount">0</span></div>
+            <button class="btn" onclick="toggleLowStock()">Low stock</button>
+          </div>
+        </aside>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    /****************************************************************
+     * Mock Data
+     ****************************************************************/
+    const products = [
+      { id: 'P001', name: 'Wireless Headphones', category:'Electronics', price:79.99, sold:420, revenue: 79.99*420, stock: 35 },
+      { id: 'P002', name: 'Running Shoes', category:'Fashion', price:59.50, sold:310, revenue:59.5*310, stock: 120 },
+      { id: 'P003', name: 'Smart Watch', category:'Electronics', price:129.99, sold:210, revenue:129.99*210, stock: 8 },
+      { id: 'P004', name: 'Coffee Maker', category:'Home', price:39.99, sold:150, revenue:39.99*150, stock: 5 },
+      { id: 'P005', name: 'Yoga Mat', category:'Sports', price:19.99, sold:640, revenue:19.99*640, stock: 220 },
+      { id: 'P006', name: 'Sunglasses', category:'Fashion', price:29.99, sold:190, revenue:29.99*190, stock: 60 },
+      { id: 'P007', name: 'Bluetooth Speaker', category:'Electronics', price:49.99, sold:270, revenue:49.99*270, stock: 18 },
+      { id: 'P008', name: 'LED Desk Lamp', category:'Home', price:24.99, sold:90, revenue:24.99*90, stock: 45 }
+    ];
+
+    // Create sample orders (last 45 days)
+    function randomDateWithin(days){
+      const ms = Date.now() - Math.floor(Math.random()*days*24*3600*1000);
+      return new Date(ms);
+    }
+    const statuses = ['Processing','Shipped','Delivered','Cancelled'];
+    const orders = Array.from({length:78}).map((_,i)=>{
+      const prod = products[Math.floor(Math.random()*products.length)];
+      const qty = Math.ceil(Math.random()*3);
+      const amount = +(prod.price * qty).toFixed(2);
+      return {
+        id: 1000 + i,
+        customer: ['Asha','Ravi','Sonia','Imran','Lina','Vikram','Sara','Ajay'][Math.floor(Math.random()*8)],
+        date: randomDateWithin(45),
+        amount,
+        status: statuses[Math.floor(Math.random()*statuses.length)],
+        category: prod.category,
+        product: prod.name
+      };
+    });
+
+    /****************************************************************
+     * Utilities
+     ****************************************************************/
+    function formatCurrency(v){ return '$' + Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) }
+    function fmtDate(d){ const dt = new Date(d); return dt.toLocaleDateString() + ' ' + dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) }
+
+    /****************************************************************
+     * KPIs
+     ****************************************************************/
+    function computeKPIs(){
+      const last30 = orders.filter(o=> (Date.now() - o.date.getTime()) <= 30*24*3600*1000);
+      const revenue = last30.reduce((s,o)=>s+o.amount,0);
+      const orderCount = last30.length;
+      const sessions = 15000; // mock sessions
+      const conv = orderCount / sessions * 100;
+      const aov = orderCount ? revenue/orderCount : 0;
+      const repeat = Math.round((Math.random()*20)+10); // mock
+
+      document.getElementById('kpiRevenue').innerText = formatCurrency(revenue);
+      document.getElementById('kpiOrders').innerText = orderCount;
+      document.getElementById('kpiConv').innerText = conv.toFixed(2) + '%';
+      document.getElementById('kpiAOV').innerText = formatCurrency(aov);
+      document.getElementById('kpiSessions').innerText = sessions.toLocaleString();
+      document.getElementById('kpiOrdersAvg').innerText = (orderCount/30).toFixed(1);
+      document.getElementById('kpiRepeat').innerText = repeat + '%';
+      document.getElementById('kpiRevDelta').innerText = (Math.random()*10-3).toFixed(1) + '%';
+    }
+
+    /****************************************************************
+     * Charts (Chart.js)
+     ****************************************************************/
+    function buildSalesChart(){
+      // aggregate daily sales for last 30 days
+      const days = 30;
+      const labels = [];
+      const sales = [];
+      for(let i=days-1;i>=0;i--){
+        const d = new Date(); d.setDate(d.getDate() - i);
+        const key = d.toISOString().slice(0,10);
+        labels.push(key);
+        const total = orders.filter(o=> o.date.toISOString().slice(0,10)===key).reduce((s,o)=>s+o.amount,0);
+        sales.push(+total.toFixed(2));
+      }
+
+      const ctx = document.getElementById('salesChart');
+      const salesChart = new Chart(ctx, {
+        type:'line',
+        data:{
+          labels,
+          datasets:[{
+            label:'Revenue',
+            data:sales,
+            tension:0.3,
+            fill:true,
+            backgroundColor: createGradient(ctx, 'rgba(59,130,246,0.12)'),
+            borderColor: '#3b82f6',
+            pointRadius:2
+          }]
+        },
+        options:{
+          responsive:true,
+          plugins:{
+            legend:{display:false},
+            tooltip:{mode:'index'}
+          },
+          scales:{
+            x:{grid:{display:false}, ticks:{maxRotation:0, autoSkip:true}},
+            y:{beginAtZero:true, grid:{color:'rgba(255,255,255,0.03)'}}
+          }
+        }
+      });
+
+      // small legend
+      const legend = document.getElementById('salesLegend');
+      legend.innerHTML = `<div class="muted small">Last ${days} days</div>`;
+    }
+
+    function createGradient(canvas, color){
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createLinearGradient(0,0,0,300);
+      gradient.addColorStop(0, color);
+      gradient.addColorStop(1, 'rgba(255,255,255,0.00)');
+      return gradient;
+    }
+
+    function buildCategoryChart(){
+      // revenue by category
+      const byCat = products.reduce((acc,p)=>{
+        acc[p.category] = (acc[p.category]||0) + p.revenue;
+        return acc;
+      },{});
+      const labels = Object.keys(byCat);
+      const data = labels.map(l=> +byCat[l].toFixed(2));
+
+      const ctx = document.getElementById('catChart');
+      new Chart(ctx, {
+        type:'doughnut',
+        data:{ labels, datasets:[{ data, hoverOffset:6, backgroundColor: generateColors(labels.length) }]},
+        options:{ plugins:{ legend:{position:'bottom', labels:{color:'#dbe9ff'} } } }
+      });
+
+      // populate filter categories
+      const catSel = document.getElementById('filterCategory');
+      labels.forEach(l=>{
+        const opt=document.createElement('option');opt.value=l;opt.textContent=l;catSel.appendChild(opt);
+      });
+    }
+
+    function generateColors(n){
+      // subtle palette
+      const base = ['#3b82f6','#7c3aed','#06b6d4','#f97316','#ef4444','#84cc16','#f59e0b','#06b6d4'];
+      return Array.from({length:n}).map((_,i)=> base[i % base.length]);
+    }
+
+    /****************************************************************
+     * Orders Table
+     ****************************************************************/
+    let currentOrders = [...orders].sort((a,b)=> b.date - a.date);
+    let page = 1, perPage = 10, currentSort = {key:'date',dir:'desc'};
+
+    function renderTable(){
+      const tbody = document.getElementById('ordersTbody');
+      tbody.innerHTML = '';
+      const start = (page-1)*perPage;
+      const slice = currentOrders.slice(start, start+perPage);
+      slice.forEach(o=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>#${o.id}</td>
+          <td>${o.customer} <div class="muted small">${o.product}</div></td>
+          <td>${fmtDate(o.date)}</td>
+          <td>${formatCurrency(o.amount)}</td>
+          <td>${o.status}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('ordersCount').innerText = currentOrders.length;
+      renderPagination();
+    }
+
+    function renderPagination(){
+      const area = document.getElementById('paginationArea');
+      area.innerHTML = '';
+      const totalPages = Math.ceil(currentOrders.length / perPage) || 1;
+      const info = document.createElement('div'); info.className='muted small'; info.style.marginRight='8px'; info.innerText = `Page ${page} of ${totalPages}`;
+      area.appendChild(info);
+
+      const prev = document.createElement('button'); prev.className='page-btn'; prev.innerText='Prev'; prev.disabled = page<=1; prev.onclick=()=>{page--; renderTable();}
+      const next = document.createElement('button'); next.className='page-btn'; next.innerText='Next'; next.disabled = page>=totalPages; next.onclick=()=>{page++; renderTable();}
+
+      area.appendChild(prev);
+      area.appendChild(next);
+    }
+
+    function sortTable(key){
+      const dir = currentSort.key === key && currentSort.dir==='asc' ? 'desc' : 'asc';
+      currentSort = {key,dir};
+      currentOrders.sort((a,b)=>{
+        let va = a[key], vb = b[key];
+        if(key==='date'){ va = a.date; vb = b.date }
+        if(typeof va === 'string') va = va.toLowerCase(), vb = vb.toLowerCase();
+        if(va < vb) return dir==='asc' ? -1 : 1;
+        if(va > vb) return dir==='asc' ? 1 : -1;
+        return 0;
+      });
+      page = 1;
+      renderTable();
+    }
+
+    /****************************************************************
+     * Search & Filters
+     ****************************************************************/
+    document.getElementById('globalSearch').addEventListener('input', function(){
+      applyFilters();
+    });
+
+    function applyFilters(){
+      const q = document.getElementById('globalSearch').value.trim().toLowerCase();
+      const status = document.getElementById('filterStatus').value;
+      const category = document.getElementById('filterCategory').value;
+
+      currentOrders = orders.filter(o=>{
+        if(status && o.status !== status) return false;
+        if(category && o.category !== category) return false;
+        if(q){
+          const hay = `${o.id} ${o.customer} ${o.product} ${o.status} ${o.category}`.toLowerCase();
+          return hay.includes(q);
+        }
+        return true;
+      }).sort((a,b)=> b.date - a.date);
+
+      page = 1;
+      renderTable();
+    }
+
+    function resetFilters(){
+      document.getElementById('globalSearch').value='';
+      document.getElementById('filterStatus').value='';
+      document.getElementById('filterCategory').value='';
+      applyFilters();
+    }
+
+    /****************************************************************
+     * Products list
+     ****************************************************************/
+    function renderProducts(lowStock=false){
+      const wrap = document.getElementById('productList');
+      wrap.innerHTML = '';
+      const sorted = [...products].sort((a,b)=> b.revenue - a.revenue);
+      const list = lowStock ? sorted.filter(p=>p.stock < 20) : sorted;
+      list.forEach(p=>{
+        const div = document.createElement('div');
+        div.className = 'prod';
+        div.innerHTML = `
+          <div class="thumb">${p.name.split(' ').slice(0,2).map(s=>s[0]).join('')}</div>
+          <div style="flex:1">
+            <div style="font-weight:700">${p.name}</div>
+            <div class="muted small">${p.category} • Sold ${p.sold}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:700">${formatCurrency(p.revenue)}</div>
+            <div class="muted small">Stock: ${p.stock}</div>
+          </div>
+        `;
+        wrap.appendChild(div);
+      });
+      document.getElementById('prodCount').innerText = products.length;
+    }
+
+    let lowStockOnly = false;
+    function toggleLowStock(){ lowStockOnly = !lowStockOnly; renderProducts(lowStockOnly); }
+
+    /****************************************************************
+     * CSV Export
+     ****************************************************************/
+    function exportCSV(){
+      const rows = [
+        ['Order ID','Customer','Product','Category','Date','Amount','Status'],
+        ...currentOrders.map(o=> [o.id, o.customer, o.product, o.category, o.date.toISOString(), o.amount, o.status])
+      ];
+      const csv = rows.map(r => r.map(String).map(cell=> `"${cell.replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `orders_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    /****************************************************************
+     * Init
+     ****************************************************************/
+    function init(){
+      computeKPIs();
+      buildSalesChart();
+      buildCategoryChart();
+      renderProducts();
+      applyFilters(); // sets currentOrders & renders table
+    }
+
+    init();
+
+    // For convenience: expose some functions to window for debugging
+    window._app = { orders, products, applyFilters, exportCSV, renderProducts, computeKPIs };
+
+  </script>
+</body>
+</html>
